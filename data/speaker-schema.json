@@ -1,0 +1,194 @@
+{
+	"type": "object",
+	"properties": {
+	
+		"type": {
+			"description": "Field required for parser.",
+		
+			"type": "string",
+			"required": true,
+			"enum": ["Feature"]
+		},
+		"geometry": {
+			"description": "Field format required for parser.",
+		
+			"type": "object",
+			"required": true,
+			"properties": {
+				"type": {
+					"type": "string",
+					"required": true,
+					"enum": ["Point"]
+				},
+				"coordinates": {
+					"type": "array",
+					"required": true,
+					"items": [
+						{
+							"title": "Longitude",
+							"type": "number",
+							"minimum": -180,
+							"maximum": 180
+						},
+						{
+							"title": "Latitude",
+							"type": "number",
+							"minimum": -90,
+							"maximum": 90
+						}
+					],
+					"additionalItems": false
+				}
+			},
+			"additionalProperties": false
+		},
+		
+		"properties": {
+			"title": "Speaker Data",
+			"description": "Customisable set of information about the speaker should be contained in this object.",
+		
+			"type": "object",
+			"required": true,
+			
+			"properties": {
+			
+				"name": {
+					"title": "Speaker's name",
+					
+					"type": "string",
+					"required": true
+				},
+				
+				"title": {
+					"title": "Job title the speaker with which the speaker identifies most",
+					
+					"type": "string",
+					"required": false
+				},
+				
+				"description": {
+					"title": "Description of speaker",
+					"description": "Not overly-long bit of text describing the speaker. Markdown can be used for some basic formatting.",
+					
+					"type": "string",
+					"required": false
+				},
+				
+				"employers": {
+					"title": "Employer of speaker",
+					"description": "Company which the speaker represents or identifies with. Only the name is required and can be skipped altogether. Either a single name or list of many, if speaker identifies with many companies.",
+					
+					"type": [
+						"string",
+						{
+							"type": "array",
+							"items": "string",
+							"uniqueItems": true
+						}
+					],
+					"required": false
+				},
+				
+				"specialties": {
+					"title": "Speaker's main interests, specialties",
+					"description": "Topics which speaker considers their trump card, their forté. Any topic works, though, for the sake of not duplicating the specialties (they're used when filtering speakers on the map by topics), take a look at other people's specialties to make sure the spelling or abbreviations are the same).",
+					
+					"type": "array",
+					"items": "string",
+					"uniqueItems": true,
+					"required": false
+				},
+				
+				"websites": {
+					"title": "Speaker's personal sites",
+					"description": "Websites that represent the speaker, such as a blog, a home page, a portfolio. Additionally, any web services that are not covered in the 'services' section below.",
+					
+					"type": "array",
+					"items": {
+						"type": "string",
+						"format": "uri"
+					},
+					"required": false
+				},
+				
+				"contact": {
+					"title": "Contact Methods",
+					"description": "Various ways by which the speaker can be reached, such as e-mail address, various IM identifications, post office box addresses or other means of communication. Each item can either be an object with explicit type or just plain string. Contact details of specific types will be handled appropriately (links where possible, additional data where needed), whereas strings will just be displayed.",
+				
+					"type": "array",
+					"items": { "type": [
+						"string",
+						{
+							"title": "Explicitly defined contact method",
+						
+							"type": "object",
+							"properties": {
+							
+								"type": {
+									"title": "Type of the contact method. Can be one of enumerated types. Depending on the type, the contact can be represented accordingly (such as, for example, 'mailto:' link for mail or a link to pre-configured web IRC client for addresses to IRC chatrooms).",
+								
+									"type": "string",
+									"enum": [
+										"mail",
+										"xmpp",
+										"msn",
+										"skype",
+										"irc"
+									],
+									"required": true
+								},
+								"value": {
+									"title": "Value for defined contact method",
+									"description": "Should be appropriate one for the provided type, e.g. for 'mail', it should be an e-mail address, for 'skype', the Skype user ID and so on.",
+									
+									"type": "string",
+									"required": true
+								}
+							
+							},
+							"additionalProperties": false
+						}
+					] },
+					"required": false
+				},
+				
+				"services": {
+					"title": "Web Services used by the speaker",
+					"description": "Various sites and services which the speaker might have established the presence on. Unlike websites (which can be any URL), these are explicitly defined services, such as Twitter.",
+					
+					"type": "array",
+					"items": { "type": [
+					
+						{
+							"title": "Twitter Handler",
+							"description": "Defining Twitter in the services will allow for easy integration with Twitter functionality - for example, displaying latest tweets. The value should be speaker's Twitter handle, without the @ sign.",
+						
+							"type": "object",
+							"properties": {
+							
+								"type": {
+									"type": "string",
+									"enum": ["twitter"],
+									"required": true
+								},
+								"value": {
+									"description": "Twitter handle without the @ sign.",
+									"type": "string",
+									"required": true
+								}
+								
+							},
+							"additionalProperties": false
+						}
+					
+					] },
+					"uniqueItems": true,
+					"required": false
+				}
+			
+			},
+			"additionalProperties": {}
+		}
+	},
+	"additionalProperties": false
+}

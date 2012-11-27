@@ -13,20 +13,41 @@ grid({
 			},
 			
 			"properties": {
-				"name": "Mikolaj Banasik",
-				"description": "This is a short description of a person.",
-				"bio": "Longer description of person, done in Markdown. Some stuff here.\n\nNew paragraph with even more stuff.",
-				"employer": "We Like Pie",
+				"name": "Mikołaj Banasik",
+				"title": "Web Developer",
+				"description": "This is a short description of a person.\n\nMarkdown, anyone?",
+				"employers": ["We Like Pie", "Real Telekom"],
 				
-				"tags": [
-					"HTML5", "CSS", "JavaScript", "Bad Jokes"
+				"specialties": [
+					"HTML5",
+					"CSS",
+					"JavaScript",
+					"Bad Jokes"
 				],
 				
 				"contact": [
-					"+44 754 228 5020",
 					{
-						"name": "E-Mail",
-						"link": "mailto:d1sover@gmail.com"
+						"type": "mail",
+						"value": "d1sover@gmail.com"
+					},
+					{
+						"type": "mail",
+						"value": "mikolaj@welikepie.com"
+					},
+					{
+						"type": "xmpp",
+						"value": "d1sover@gmail.com"
+					},
+					{
+						"type": "skype",
+						"value": "d1sover"
+					}
+				],
+				
+				"services": [
+					{
+						"type": "twitter",
+						"value": "d1sover"
 					}
 				]
 			}
