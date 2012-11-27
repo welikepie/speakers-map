@@ -4,7 +4,8 @@
 * **[DONE]** Set up core data file for speakers (to refer when working)
 * **[DONE]** Establish basic marker & tooltip display
 * **[DONE]** Complete the data schema
-* Check how MapBox works with MultiPoint GeoJSON structure instead of Point in speaker data
+* **[DONE]** Check how MapBox works with MultiPoint GeoJSON structure instead of Point in speaker data
+  * It doesn't, the data is not parsed if it's not a Point. Will have to stora additional location data as non-GeoJSON.
 * Implement marker filtering by tags, employers
 * Implement proper UI for handling the filtering
   * Tooltip styling - info about the speakers
