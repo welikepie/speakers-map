@@ -145,13 +145,13 @@ module.exports = function (grunt) {
 			// Auxiliary scripts
 			'aux': {
 				'src': '<config:concat.aux.dest>',
-				'dest': '<config:min.aux.src>'
+				'dest': '<config:concat.aux.dest>'
 			},
 			
 			// Main scripts
 			'main': {
 				'src': '<config:concat.main.dest>',
-				'dest': '<config:min.main.src>'
+				'dest': '<config:concat.main.dest>'
 			}
 		
 		},
