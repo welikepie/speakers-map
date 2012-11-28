@@ -1,10 +1,27 @@
-/*jshint nonew:false, unused:false */
+/*jshint nonew:false */
 /*global _:true, Q:true, Zepto:true, mapbox:true */
 
 new Zepto(function ($) {
 	"use strict";
 
-	var speakers_map = (function (options) {
+	var arr_hash = function (arr) { return arr.join('|||'); },
+		normalise = _.memoize(function (string) {
+			return string
+				.toLowerCase()
+				.replace(/^\s+|\s+$/i, '')
+				.replace(/\s+/i, ' ');
+		}),
+		normalise_arr = _.memoize(function (arr) {
+			var t = _.chain(arr)
+				.map(normalise)
+				.compact()
+				.uniq()
+				.value();
+			t.sort();
+			return t;
+		}, arr_hash),
+	
+	speakers_map = (function (options) {
 	
 		options = options || {};
 		var mapbox_url = options.map_url || 'arranrp.pirate',
@@ -48,13 +65,9 @@ new Zepto(function ($) {
 			map_deferred,
 			marker_deferred,
 			
-			callback = options.callback || null,
-			
 			filters,
-			filter_func,
+			root_func,
 			filter_invoke,
-			
-			normalise_arr,
 			
 			tag_functions,
 			employer_functions;
@@ -92,7 +105,7 @@ new Zepto(function ($) {
 		// ---------
 		
 		filters = [];
-		filter_func = function (feature) {
+		root_func = function (feature) {
 			if (!filters.length) {
 				return true;
 			} else {
@@ -101,207 +114,115 @@ new Zepto(function ($) {
 				}, true);
 			}
 		};
-		filter_invoke = function () { marker_layer.filter(filter_func); };
-		normalise_arr = _.memoize(function (arr) {
-			var t = _.chain(arr)
-				.map(function (item) {
-					return item
-						.toLowerCase()
-						.replace(/^\s+|\s+$/i, '')
-						.replace(/\s+/i, ' ');
-				})
-				.compact()
-				.uniq()
-				.value();
-			t.sort();
-			return t;
-		}, function (arr) { return arr.join('|'); });
+		filter_invoke = function () { marker_layer.filter(root_func); };
 		
-		// TAG HANDLING
-		// ------------
+		(function () {
 		
-		tag_functions = (function () {
-		
-			var get,
-				filter_set,
-				filter_add,
-				filter_remove,
-				
-				filtered_tags = [],
-				filter_tag_func = function (feature) {
-					if (('specialties' in feature.properties) &&
-						_.isArray(feature.properties.specialties) &&
-						feature.properties.specialties.length) {
-						
-						var tags = normalise_arr(filtered_tags);
-						return _.intersection(tags, normalise_arr(feature.properties.specialties)).length === tags.length;
+			var partial_match_filter = function (source_field, result_field, comp_func, always_on) {
+			
+				always_on = !!always_on || false;
+			
+				var get,
+					filter_set,
+					filter_add,
+					filter_remove,
 					
+					filtered_values = [],
+					filter_func = function (feature) {
+						var source;
+						if (source_field in feature.properties) {
+						
+							source = feature.properties[source_field];
+							if (_.isArray(source) && source.length) {
+							
+								return comp_func(
+									normalise_arr(filtered_values),
+									normalise_arr(source)
+								);
+							
+							} else {
+								return false;
+							}
+						
+						} else {
+							return false;
+						}
+					};
+				
+				get = function () {
+				
+					return _.chain(marker_layer.features())
+						.pluck('properties')
+						.pluck(source_field)
+						.flatten(true)
+						.compact()
+						.countBy(_.identity)
+						.map(function (value, key) {
+							var temp = {};
+							temp[result_field] = key;
+							temp.count = value;
+							return temp;
+						})
+						.value();
+				
+				};
+				
+				filter_set = function (arr) {
+					var inx;
+					if (_.isArray(arr)) {
+						if (arr_hash(filtered_values) !== arr_hash(arr)) {
+						
+							filtered_values = arr;
+							if (!always_on) {
+								inx = _.indexOf(filters, filter_func);
+								if (filtered_values.length && (inx === -1)) {
+									filters.push(filter_func);
+								} else if (!filtered_values.length && (inx !== -1)) {
+									filters.splice(inx, 1);
+								}
+							}
+							filter_invoke();
+						
+						}
 					} else {
-						return false;
+						throw new Error('Value passed needs to be an array.');
+					}
+					
+				};
+				
+				filter_add = function (val) {
+					if (val) {
+						if (!_.isArray(val)) { val = [val]; }
+						var temp = _.union(filtered_values, val);
+						filter_set(temp);
+					}
+				};
+				
+				filter_remove = function (val) {
+					if (val) {
+						if (!_.isArray(val)) { val = [val]; }
+						filter_set(_.difference(filtered_values, val));
+					}
+				};
+				
+				if (always_on) {
+					filters.push(filter_func);
+					filter_invoke();
+				}
+				
+				return {
+					'get': get,
+					'filter': {
+						'set': filter_set,
+						'add': filter_add,
+						'remove': filter_remove
 					}
 				};
 			
-			get = function () {
-			
-				return _.chain(marker_layer.features())
-					.pluck('properties')
-					.pluck('specialties')
-					.flatten(true)
-					.compact()
-					.countBy(_.identity)
-					.map(function (value, key) {
-						return {
-							'tag': key,
-							'count': value
-						};
-					})
-					.value();
-			
 			};
 			
-			filter_set = function (arr) {
-				var inx;
-				
-				if ((typeof arr === 'object') && _.isArray(arr)) {
-					filtered_tags = arr;
-				} else {
-					filtered_tags = [];
-				}
-				
-				inx = _.indexOf(filters, filter_tag_func);
-				if (filtered_tags.length && (inx === -1)) {
-					filters.push(filter_tag_func);
-				} else if (!filtered_tags.length && (inx !== -1)) {
-					filters.splice(inx, 1);
-				}
-				filter_invoke();
-			};
-			filter_add = function (item) {
-				var inx;
-				
-				if (_.indexOf(filtered_tags, item) === -1) {
-					filtered_tags.push(item);
-					inx = _.indexOf(filters, filter_tag_func);
-					if (filtered_tags.length && (inx === -1)) {
-						filters.push(filter_tag_func);
-					}
-					filter_invoke();
-				}
-			};
-			filter_remove = function (item) {
-				var inx = _.indexOf(filtered_tags, item);
-			
-				if (inx !== -1) {
-					filtered_tags.splice(inx, 1);
-					inx = _.indexOf(filters, filter_tag_func);
-					if (!filtered_tags.length && (inx !== -1)) {
-						filters.splice(inx, 1);
-					}
-					filter_invoke();
-				}
-			};
-			
-			return {
-				'get': get,
-				'filter': {
-					'set': filter_set,
-					'add': filter_add,
-					'remove': filter_remove
-				}
-			};
-		
-		}());
-		
-		employer_functions = (function () {
-		
-			var get,
-				filter_set,
-				filter_add,
-				filter_remove,
-				
-				filtered_employers = [],
-				filter_employer_func = function (feature) {
-					if (('employers' in feature.properties) &&
-						_.isArray(feature.properties.employers) &&
-						feature.properties.employers.length) {
-						
-						var employers = normalise_arr(filtered_employers);
-						//console.log('Comparing ', employers, ' to ', normalise_arr(feature.properties.employers), feature.properties.employers);
-						return _.intersection(employers, normalise_arr(feature.properties.employers)).length > 0;
-					
-					} else {
-						return false;
-					}
-				};
-			
-			get = function () {
-			
-				return _.chain(marker_layer.features())
-					.pluck('properties')
-					.pluck('employers')
-					.flatten(true)
-					.compact()
-					.countBy(_.identity)
-					.map(function (value, key) {
-						return {
-							'employer': key,
-							'count': value
-						};
-					})
-					.value();
-			
-			};
-			
-			filter_set = function (arr) {
-				var inx;
-				
-				if ((typeof arr === 'object') && _.isArray(arr)) {
-					filtered_employers = arr;
-				} else {
-					filtered_employers = [];
-				}
-				
-				inx = _.indexOf(filters, filter_employer_func);
-				if (filtered_employers.length && (inx === -1)) {
-					filters.push(filter_employer_func);
-				} else if (!filtered_employers.length && (inx !== -1)) {
-					filters.splice(inx, 1);
-				}
-				filter_invoke();
-			};
-			filter_add = function (item) {
-				var inx;
-				
-				if (_.indexOf(filtered_employers, item) === -1) {
-					filtered_employers.push(item);
-					inx = _.indexOf(filters, filter_employer_func);
-					if (filtered_employers.length && (inx === -1)) {
-						filters.push(filter_employer_func);
-					}
-					filter_invoke();
-				}
-			};
-			filter_remove = function (item) {
-				var inx = _.indexOf(filtered_employers, item);
-			
-				if (inx !== -1) {
-					filtered_employers.splice(inx, 1);
-					inx = _.indexOf(filters, filter_employer_func);
-					if (!filtered_employers.length && (inx !== -1)) {
-						filters.splice(inx, 1);
-					}
-					filter_invoke();
-				}
-			};
-			
-			return {
-				'get': get,
-				'filter': {
-					'set': filter_set,
-					'add': filter_add,
-					'remove': filter_remove
-				}
-			};
+			tag_functions = partial_match_filter('specialties', 'tag', function (base, source) { return base.length && (_.intersection(base, source).length === base.length); });
+			employer_functions = partial_match_filter('employers', 'employer', function (base, source) { return _.intersection(base, source).length > 0; }, true);
 		
 		}());
 		
@@ -370,7 +291,7 @@ new Zepto(function ($) {
 			.value())
 			.appendTo(container)
 				.find('input')
-				.on('click', function (ev) {
+				.on('change', function () {
 					speakers_map.tags.filter[this.checked ? 'add' : 'remove'](this.value);
 				});
 	
@@ -380,20 +301,44 @@ new Zepto(function ($) {
 	speakers_map.promises.markers.then(function () {
 	
 		var minimum_count = 4,
-		
+			employer_list = speakers_map.employers.get(),
+			minor_employers = _.filter(employer_list, function (x) { return x.count < minimum_count; }),
+			
 			item = template($('[data-template="employer-selection"]').get(0)),
-			container = $('[data-container="employer-selection"]');
-		
-		$(_.chain(speakers_map.employers.get())
-			.filter(function (x) { return x.count >= minimum_count; })
-			.tap(function (x) { x.sort(function (a, b) { return b.count - a.count; }); })
-			.map(item)
-			.value())
+			container = $('[data-container="employer-selection"]'),
+			
+			all_employers = $('#employer-selection label input').on('change', function () {
+				if (this.checked) {
+					employer_items.each(function () { this.checked = true; });
+					speakers_map.employers.filter.set(_.pluck(employer_list, 'employer'));
+				} else {
+					employer_items.each(function () { this.checked = false; });
+					speakers_map.employers.filter.set([]);
+				}
+			}).get(0),
+			
+			employer_items = _.chain(speakers_map.employers.get())
+				.filter(function (x) { return x.count >= minimum_count; })
+				.tap(function (x) { x.sort(function (a, b) { return b.count - a.count; }); })
+				.map(item)
+				.tap(function (x) {
+					var other_employers = item({'employer': 'Other companies'});
+					other_employers.getElementsByTagName('input')[0].value = arr_hash(_.pluck(minor_employers, 'employer'));
+					x.push(other_employers);
+				})
+				.value();
+			
+		employer_items = $(employer_items)
 			.appendTo(container)
-				.find('input')
-				.on('click', function (ev) {
-					speakers_map.employers.filter[this.checked ? 'add' : 'remove'](this.value);
+			.find('input')
+				.on('change', function () {
+					console.dir(employer_items);
+					speakers_map.employers.filter[this.checked ? 'add' : 'remove'](this.value.split('|||'));
+					all_employers.checked = !(employer_items.filter(function () { return !this.checked; }).length);
 				});
+		
+		speakers_map.employers.filter.set(_.pluck(employer_list, 'employer'));
+		
 	
 	});
 

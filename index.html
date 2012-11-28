@@ -15,9 +15,12 @@
 			</fieldset>
 		</form>
 		<form id="employer-selection">
-			<fieldset data-container="employer-selection">
+			<fieldset>
 				<legend>Employers</legend>
-				<label data-template="employer-selection"><input type="checkbox" name="employer" value="{{ employer }}"> {{ employer }}</label>
+				<label><input type="checkbox" name="employer" value="_all" checked> ALL</label>
+				<div data-container="employer-selection">
+					<label data-template="employer-selection"><input type="checkbox" name="employer" value="{{ employer }}" checked> {{ employer }}</label>
+				</div>
 			</fieldset>
 		</form>
 	</body>

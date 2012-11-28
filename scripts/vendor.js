@@ -11014,6 +11014,7 @@ var Zepto = (function() {
       return this
     },
     filter: function(selector){
+      if (isFunction(selector)) return this.not(this.not(selector))
       return $([].filter.call(this, function(element){
         return zepto.matches(element, selector)
       }))

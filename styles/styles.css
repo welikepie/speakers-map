@@ -42,3 +42,7 @@ body,
   margin: 0 6px 6px 0;
   background: #EEE;
 }
+
+#employer-selection [data-container] {
+  clear: left;
+}
