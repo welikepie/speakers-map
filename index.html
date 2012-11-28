@@ -8,6 +8,18 @@
 	</head>
 	<body>
 		<div id="map"></div>
+		<form id="tag-selection">
+			<fieldset data-container="tag-selection">
+				<legend>Tags</legend>
+				<label data-template="tag-selection"><input type="checkbox" name="tag" value="{{ tag }}"> {{ tag }}</label>
+			</fieldset>
+		</form>
+		<form id="employer-selection">
+			<fieldset data-container="employer-selection">
+				<legend>Employers</legend>
+				<label data-template="employer-selection"><input type="checkbox" name="employer" value="{{ employer }}"> {{ employer }}</label>
+			</fieldset>
+		</form>
 	</body>
 	<script type="text/javascript" src="scripts/vendor.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
