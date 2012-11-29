@@ -97,6 +97,7 @@ mapbox.markers.layerWithClusters = (function () {
 			
 			if (!events_bound) {
 				base_layer.map.addCallback('zoomed', report_function);
+				report_function();
 				events_bound = true;
 			}
 			
@@ -116,7 +117,7 @@ mapbox.markers.layerWithClusters = (function () {
 		
 		(function () {
 			
-			var minimum_distance = 40,
+			var minimum_distance = 20,
 				sum_func = function (a, b) { return a + b; };
 			
 			report_function = _.debounce(function crazy_ass_function () {
@@ -148,6 +149,7 @@ mapbox.markers.layerWithClusters = (function () {
 							average_count = 1;
 						
 						grid[arr[0]] = null;
+						markers[arr[0]].element.style.display = 'none';
 						markers[arr[0]] = null;
 						
 						_.each(arr[1], function (inx) {
@@ -156,6 +158,7 @@ mapbox.markers.layerWithClusters = (function () {
 								average_y.push(grid[inx].y);
 								average_count += 1;
 								grid[inx] = null;
+								markers[inx].element.style.display = 'none';
 								markers[inx] = null;
 							}
 						});
@@ -171,7 +174,8 @@ mapbox.markers.layerWithClusters = (function () {
 					}
 				
 				});
-				
+
+				_.each(markers, function (item) { if (item) { item.element.style.display = ''; } });
 				markers = null;
 				grid = null;
 				results = null;
