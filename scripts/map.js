@@ -78,7 +78,8 @@ new Zepto(function ($) {
 		map_object = mapbox.map(map_container);
 		map_deferred = Q.defer();
 		
-		marker_layer = mapbox.markers.layer();
+		marker_layer = mapbox.markers.layerWithClusters();
+		marker_layer.key(function (f) { return f.properties.name; });
 		marker_layer.factory(marker_generator);
 		marker_interaction = mapbox.markers.interaction(marker_layer)
 			.hideOnMove(false)
