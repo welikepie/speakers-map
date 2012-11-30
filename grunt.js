@@ -77,8 +77,8 @@ module.exports = function (grunt) {
 			// well by the linter.
 			
 			// Development lints grunt.js as well, to ensure no mistakes in the build script.
-			'dev': ['grunt.js', 'scripts/!(vendor|main).js'],
-			'release': 'scripts/!(vendor|main).js'
+			'dev': ['grunt.js', 'scripts/!(vendor|main).js', 'scripts/x-utils/*.js'],
+			'release': ['scripts/!(vendor|main).js', 'scripts/x-utils/*.js']
 		
 		},
 		'jshint': (function () {

@@ -234,7 +234,7 @@ new Zepto(function ($) {
 				});
 			},
 			
-			tooltip_generator = options.tooltip_generator || function (feature) {
+			/*tooltip_generator = options.tooltip_generator || function (feature) {
 				var html = '',
 					props = ('properties' in feature ? feature.properties : {});
 					
@@ -251,12 +251,12 @@ new Zepto(function ($) {
 				html = '<div>' + html + '</div>';
 				
 				return $(html).get(0);
-			},
+			},*/
 			
 			map_object,
 			map_layer,
 			marker_layer,
-			marker_interaction,
+			//marker_interaction,
 			
 			map_deferred,
 			marker_deferred,
@@ -274,14 +274,14 @@ new Zepto(function ($) {
 		map_object = mapbox.map(map_container);
 		map_deferred = Q.defer();
 		
-		marker_layer = mapbox.markers.layerWithClusters();
+		marker_layer = mapbox.markers.layerClustered();
 		marker_layer.key(function (f) { return f.properties.name; });
-		marker_layer.factory(marker_generator);
-		marker_interaction = mapbox.markers.interaction(marker_layer)
+		marker_layer.marker_factory(marker_generator);
+		/*marker_interaction = mapbox.markers.interaction(marker_layer)
 			.hideOnMove(false)
 			.showOnHover(false)
 			.exclusive(true)
-			.formatter(tooltip_generator);
+			.formatter(tooltip_generator);*/
 		marker_deferred = Q.defer();
 		
 		// Async loading
