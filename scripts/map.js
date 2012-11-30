@@ -60,7 +60,7 @@ new Zepto(function ($) {
 			map_object,
 			map_layer,
 			marker_layer,
-			//marker_interaction,
+			marker_interaction,
 			
 			map_deferred,
 			marker_deferred,
@@ -81,11 +81,7 @@ new Zepto(function ($) {
 		marker_layer = mapbox.markers.layerClustered();
 		marker_layer.key(function (f) { return f.properties.name; });
 		marker_layer.marker_factory(marker_generator);
-		/*marker_interaction = mapbox.markers.interaction(marker_layer)
-			.hideOnMove(false)
-			.showOnHover(false)
-			.exclusive(true)
-			.formatter(tooltip_generator);*/
+		marker_interaction = mapbox.markers.layerClustered.interaction(marker_layer);
 		marker_deferred = Q.defer();
 		
 		// Async loading
@@ -228,6 +224,7 @@ new Zepto(function ($) {
 		}());
 		
 		return {
+			'map': map_object,
 			'tags': tag_functions,
 			'employers': employer_functions,
 			'promises': {
@@ -339,7 +336,6 @@ new Zepto(function ($) {
 				});
 		
 		speakers_map.employers.filter.set(_.pluck(employer_list, 'employer'));
-		
 	
 	});
 

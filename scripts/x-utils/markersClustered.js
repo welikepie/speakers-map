@@ -5,9 +5,10 @@ mapbox.markers.layerClustered = function () {
 	
 	var base_layer = mapbox.markers.layer.apply(this, arguments),
 	
-		//clusters,
+		clusters = [],
 		cluster_marker_cutoff,
 		calculate_clusters,
+		marker_factory = base_layer.factory(),
 		cluster_factory = _.bind(mapbox.markers.simplestyle_factory, this, {
 			'properties': {
 				'marker-symbol': 'star',
@@ -29,13 +30,23 @@ mapbox.markers.layerClustered = function () {
 			};
 		};
 	
-	base_layer.marker_factory = base_layer.factory;
+	base_layer.factory(function (feature) {
+		var result = marker_factory(feature);
+		result.marker_type = 'feature';
+		return result;
+	});
 	base_layer.factory = disabled_func('factory', "To set factories, use 'marker_factory' and 'cluster_factory'.");
+	
+	base_layer.marker_factory = function (x) {
+        if (!arguments.length) { return marker_factory; }
+        marker_factory = x;
+        base_layer.features(base_layer.features());
+        return base_layer;
+    };
 	base_layer.cluster_factory = function (x) {
         if (!arguments.length) { return cluster_factory; }
         cluster_factory = x;
-        // re-render all clusters
-        // CODE HERE
+		base_layer.clusters(base_layer.clusters());
         return base_layer;
     };
 	
@@ -92,8 +103,10 @@ mapbox.markers.layerClustered = function () {
 		var i, j,
 			markers = base_layer.markers().slice(0, cluster_marker_cutoff),
 			grid = _.map(markers, function (item) { return base_layer.map.locationPoint(item.location); }),
-			results = _.map(_.range(grid.length), function () { return []; }),
-			clusters = [];
+			results = _.map(_.range(grid.length), function () { return []; });
+		
+		// Clear the array off existing data
+		clusters.length = 0;
 		
 		for (i = 0; i < grid.length; i += 1) {
 			for (j = i + 1; j < grid.length; j += 1) {
@@ -116,10 +129,12 @@ mapbox.markers.layerClustered = function () {
 			
 				var average_x = [grid[arr[0]].x],
 					average_y = [grid[arr[0]].y],
-					average_count = 1;
+					average_count = 1,
+					items = [];
 				
 				grid[arr[0]] = null;
 				marker_handler_hidden(markers[arr[0]]);
+				items.push(markers[arr[0]]);
 				markers[arr[0]] = null;
 				
 				_.each(arr[1], function (inx) {
@@ -129,6 +144,7 @@ mapbox.markers.layerClustered = function () {
 						average_count += 1;
 						grid[inx] = null;
 						marker_handler_hidden(markers[inx]);
+						items.push(markers[inx]);
 						markers[inx] = null;
 					}
 				});
@@ -138,7 +154,7 @@ mapbox.markers.layerClustered = function () {
 						_.reduce(average_x, sum_func, 0) / average_count,
 						_.reduce(average_y, sum_func, 0) / average_count
 					)),
-					'count': average_count
+					'items': items
 				});
 				
 			}
@@ -158,28 +174,31 @@ mapbox.markers.layerClustered = function () {
 	
 	base_layer.clusters = function (arr) {
 	
+		if (!arguments.length) { return clusters; }
+	
 		var markers = base_layer.markers(),
 			cluster_markers = markers.slice(cluster_marker_cutoff);
 		
 		_.each(cluster_markers, base_layer.remove);
 		markers.splice(cluster_marker_cutoff, markers.length - cluster_marker_cutoff);
 		
-		arr = _.each(arr, function (item) {
+		_.each(arr, function (item) {
 			var obj = {
-				"type": "Geometry", 
-				"geometry": {
-					"coordinates": [
-						item.location.lon, 
-						item.location.lat
-					], 
-					"type": "Point"
-				}, 
-				"properties": {
-					"count": item.count
-				}
-			};
+					"type": "Geometry", 
+					"geometry": {
+						"coordinates": [
+							item.location.lon, 
+							item.location.lat
+						], 
+						"type": "Point"
+					}, 
+					"properties": { "items": item.items }
+				},
+				el = cluster_factory(obj);
+				el.marker_type = 'cluster';
+			
 			base_layer.add({
-				'element': cluster_factory(obj),
+				'element': el,
 				'location': item.location,
 				'data': obj
 			});
