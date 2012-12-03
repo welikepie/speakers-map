@@ -8,6 +8,7 @@ mapbox.markers.layerClustered = function () {
 		clusters = [],
 		cluster_marker_cutoff,
 		calculate_clusters,
+		calculate_clusters_debounced,
 		marker_factory = base_layer.factory(),
 		cluster_factory = _.bind(mapbox.markers.simplestyle_factory, this, {
 			'properties': {
@@ -82,7 +83,7 @@ mapbox.markers.layerClustered = function () {
 		// No-op if not attached
 		if (!base_layer.map) { return; }
 		if (!events_bound) {
-			base_layer.map.addCallback('zoomed', _.debounce(calculate_clusters, 300));
+			base_layer.map.addCallback('zoomed', calculate_clusters_debounced);
 			events_bound = true;
 		}
 		overridden_functions.draw();
@@ -92,7 +93,7 @@ mapbox.markers.layerClustered = function () {
 	overridden_functions.destroy = base_layer.destroy;
 	base_layer.destroy = function () {
 		if (events_bound) {
-			base_layer.map.removeCallback('zoomed', calculate_clusters);
+			base_layer.map.removeCallback('zoomed', calculate_clusters_debounced);
 			events_bound = false;
 		}
 		overridden_functions.destroy();
@@ -171,6 +172,23 @@ mapbox.markers.layerClustered = function () {
 		base_layer.clusters(clusters);
 	
 	};
+	
+	(function () {
+	
+		var last_zoom = null;
+		calculate_clusters_debounced = _.debounce(function calculate_clusters_debounced () {
+		
+			var current_zoom = null;
+			if (base_layer.map) { current_zoom = base_layer.map.zoom(); }
+			
+			if (!(current_zoom && current_zoom === last_zoom)) {
+				calculate_clusters();
+				if (current_zoom) { last_zoom = current_zoom; }
+			}
+		
+		}, 300);
+	
+	}());
 	
 	base_layer.clusters = function (arr) {
 	
