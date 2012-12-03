@@ -180,7 +180,7 @@ module.exports = function (grunt) {
 			// This bit monitors the same set of files as concat's aux task and re-concatenates whenever change occurs
 			'js-aux': {
 				'files': '<config:concat.aux.src>',
-				'tasks': ['concat:aux']
+				'tasks': ['lint:dev', 'concat:aux']
 			}
 		
 		}
