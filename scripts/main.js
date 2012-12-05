@@ -60,7 +60,6 @@ new Zepto(function ($) {
 		map_deferred = Q.defer();
 		
 		marker_layer = mapbox.markers.layerClustered();
-		marker_layer.key(function (f) { return f.properties.name; });
 		marker_layer.marker_factory(marker_generator);
 		marker_interaction = mapbox.markers.layerClustered.interaction(marker_layer);
 		marker_deferred = Q.defer();
@@ -107,24 +106,27 @@ new Zepto(function ($) {
 					
 					filtered_values = [],
 					filter_func = function (feature) {
+					
 						var source;
+						
 						if (source_field in feature.properties) {
-						
 							source = feature.properties[source_field];
-							if (_.isArray(source) && source.length) {
-							
-								return comp_func(
-									normalise_arr(filtered_values),
-									normalise_arr(source)
-								);
-							
+							if (_.isArray(source)) {
+								if (!source.length) {
+									source = ['undefined'];
+								}
 							} else {
-								return false;
+								source = [source];
 							}
-						
 						} else {
-							return false;
+							source = ['undefined'];
 						}
+						
+						return comp_func(
+							normalise_arr(filtered_values),
+							normalise_arr(source)
+						);
+
 					};
 				
 				get = function () {
@@ -289,7 +291,7 @@ new Zepto(function ($) {
 			all_employers = $('#employer-selection label input').on('change', function () {
 				if (this.checked) {
 					employer_items.each(function () { this.checked = true; });
-					speakers_map.employers.filter.set(_.pluck(employer_list, 'employer'));
+					speakers_map.employers.filter.set(_.pluck(employer_list, 'employer').concat(['undefined']));
 				} else {
 					employer_items.each(function () { this.checked = false; });
 					speakers_map.employers.filter.set([]);
@@ -301,9 +303,15 @@ new Zepto(function ($) {
 				.tap(function (x) { x.sort(function (a, b) { return b.count - a.count; }); })
 				.map(item)
 				.tap(function (x) {
-					var other_employers = item({'employer': 'Other companies'});
-					other_employers.getElementsByTagName('input')[0].value = arr_hash(_.pluck(minor_employers, 'employer'));
-					x.push(other_employers);
+				
+					var list_item = item({'employer': 'Other companies'});
+					list_item.getElementsByTagName('input')[0].value = arr_hash(_.pluck(minor_employers, 'employer'));
+					x.push(list_item);
+					
+					list_item = item({'employer': 'No company'});
+					list_item.getElementsByTagName('input')[0].value = 'undefined';
+					x.push(list_item);
+					
 				})
 				.value();
 			
