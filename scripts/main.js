@@ -38,25 +38,6 @@ new Zepto(function ($) {
 				});
 			},
 			
-			/*tooltip_generator = options.tooltip_generator || function (feature) {
-				var html = '',
-					props = ('properties' in feature ? feature.properties : {});
-					
-				if ('name' in props) { html += '<h1 class="name">' + props.name + '</h1>'; }
-				if ('description' in props) { html += '<div class="description">' + props.description + '</div>'; }
-					
-				if (typeof window.html_sanitize === 'function') {
-					html = window.html_sanitize(
-						html,
-						function (x) { return x; },
-						function (x) { return x; }
-					);
-				}
-				html = '<div>' + html + '</div>';
-				
-				return $(html).get(0);
-			},*/
-			
 			map_object,
 			map_layer,
 			marker_layer,

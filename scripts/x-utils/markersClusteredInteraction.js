@@ -9,7 +9,10 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 	
 	var interaction = {},
 		tooltips = [],
+		
 		on = true,
+		exclusive = true,
+		hideOnMove = true,
 		
 		bindMarker,
 		
@@ -34,9 +37,14 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 	
 	interaction.enable = function () { on = true; console.log(on); };
 	interaction.disable = function () { on = false; console.log(on); };
-	
-	
-	
+	interaction.exclusive = function (x) {
+		if (!arguments.length) { return exclusive; }
+		exclusive = !!x;
+	};
+	interaction.hideOnMove = function (x) {
+		if (!arguments.length) { return hideOnMove; }
+		hideOnMove = !!x;
+	};
 	
 	interaction.clusterHandler = function (func) {
 		if (!arguments.length) { return clusterHandler; }
@@ -55,58 +63,6 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 		
 	};
 	
-	clusterHandler = function (ev, marker, layer) {
-	
-		var tooltip,
-			wrapper,
-			content;
-		
-		// Determine fcluster behaviour - if not at max zoom level, zoom in.
-		// Otherwise, display a tooltip containing the tooltips of all included elements.
-		if (layer.map.coordLimits && (layer.map.zoom() < layer.map.coordLimits[1].zoom)) {
-		
-			layer.map.centerzoom(marker.location, layer.map.zoom() + 1, true);
-		
-		} else {
-		
-			content = clusterFormatter(marker.data);
-			
-			if (content) {
-		
-				wrapper = document.createElement('div');
-				wrapper.style.position = 'absolute';
-				wrapper.style.pointerEvents = 'auto';
-				wrapper.style.background = 'white';
-				
-				bean.add(wrapper, 'mousedown touchstart', function stopPropagation(e) {
-					e.cancelBubble = true;
-					if (e.stopPropagation) { e.stopPropagation(); }
-					return false;
-				});
-				
-				if (typeof content === 'string') {
-					wrapper.innerHTML = content;
-				} else {
-					wrapper.appendChild(content);
-				}
-				
-				tooltip = {
-					'element': wrapper,
-					'data': {},
-					'interactive': false,
-					'location': marker.location
-				};
-				
-				tooltips.push(tooltip);
-				layer.add(tooltip);
-				layer.draw();
-			
-			}
-		
-		}
-		
-	};
-	
 	interaction.featureHandler = function (func) {
 		if (!arguments.length) { return featureHandler; }
 		if (typeof func === 'function') { featureHandler = func; }
@@ -116,7 +72,9 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 		var el, tooltip, content = featureFormatter(marker.data);
 		if (content) {
 		
-			el = tooltipGenerator('feature', content);
+			if (exclusive && tooltips.length) { interaction.hideTooltips(); }
+		
+			el = tooltipGenerator('feature', content, marker);
 			tooltip = {
 				'element': el,
 				'data': {},
@@ -154,7 +112,9 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 			
 			if (content) {
 			
-				el = tooltipGenerator('cluster', content);
+				if (exclusive && tooltips.length) { interaction.hideTooltips(); }
+			
+				el = tooltipGenerator('cluster', content, marker);
 				tooltip = {
 					'element': el,
 					'data': {},
@@ -171,6 +131,28 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 		
 	});
 	
+	interaction.hideTooltips = function () {
+		while (tooltips.length) {
+			try { clustered_layer.remove(tooltips.pop()); }
+			catch (e) {}
+		}
+	};
+	interaction.screenPosition = function (marker) {
+	
+		if (!clustered_layer.map) { return null; }
+		
+		var size = clustered_layer.map.locationPoint(clustered_layer.map.getExtent().southEast()),
+			point = clustered_layer.map.locationPoint(marker.location);
+		
+		return {
+			'top': point.y,
+			'bottom': size.y - point.y,
+			'left': point.x,
+			'right': size.x - point.x
+		};
+		
+	};
+	
 	interaction.featureFormatter = function (func) {
 		if (!arguments.length) { return featureFormatter; }
 		if (typeof func === 'function') { featureFormatter = func; }
@@ -184,6 +166,7 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 			if (feature.properties.description) { html += '<div>' + feature.properties.description + '</div>'; }
 		}
 		el.innerHTML = html;
+		el.className = 'tooltip-content';
 		el.style.pointerEvents = 'auto';
 		
 		return el;
@@ -235,37 +218,70 @@ mapbox.markers.layerClustered.interaction = function (clustered_layer) {
 		el = document.createElement('div');
 		el.appendChild(item_list);
 		el.appendChild(drop_zone);
+		el.className = 'tooltip-cluster';
 		el.style.pointerEvents = 'auto';
 		
 		return el;
 	
 	});
 	
-	tooltipGenerator = function (type, content) {
+	interaction.tooltipGenerator = function (func) {
+		if (!arguments.length) { return tooltipGenerator; }
+		if (typeof func === 'function') { tooltipGenerator = func; }
+	};
+	interaction.tooltipGenerator(function defaultTooltipGenerator (type, content, marker) {
 	
-		var el = document.createElement('div');
-		el.style.position = 'absolute';
-		el.style.pointerEvents = 'none';
-		el.style.background = 'white';
+		var tooltip,
+			wrapper;
 		
-		bean.add(el, 'mousedown touchstart', function stopPropagation (e) {
+		tooltip = document.createElement('div');
+		tooltip.className = 'marker-tooltip';
+		tooltip.style.width = '100%';
+		
+		wrapper = tooltip.appendChild(document.createElement('div'));
+		wrapper.style.position = 'absolute';
+		wrapper.style.pointerEvents = 'none';
+		
+		content = wrapper.appendChild(content);
+		content.className = content.className + ' marker-popup';
+		content.style.pointerEvents = 'auto';
+		
+		wrapper.style.bottom = marker.element.offsetHeight / 2 + 20 + 'px';
+		
+		bean.add(content, 'mousedown touchstart', function stopPropagation (e) {
 			e.cancelBubble = true;
 			if (e.stopPropagation) { e.stopPropagation(); }
 			return false;
 		});
 		
-		el.appendChild(content);
-		
-		return el;
+		return tooltip;
 	
-	};
+	});
 	
 	if (clustered_layer) {
 	
 		_.each(clustered_layer.markers(), bindMarker);
-		clustered_layer.addCallback('markeradded', function (_, marker) { bindMarker(marker); });
+		clustered_layer.addCallback('markeradded', function (_, marker) {
+			if (marker.interactive !== false) {
+				bindMarker(marker);
+			}
+		});
 		clustered_layer.interaction = interaction;
+		
+		(function () {
+		
+			var bind_pan = function () {
+				clustered_layer.removeCallback('drawn', bind_pan);
+				clustered_layer.map.addCallback('panned', function removeTooltipsOnPan () {
+					if (hideOnMove) { interaction.hideTooltips(); }
+				});
+			};
+			clustered_layer.addCallback('drawn', bind_pan);
+		
+		}());
 	
 	}
+	
+	return interaction;
 
 };
